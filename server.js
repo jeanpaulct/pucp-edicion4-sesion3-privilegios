@@ -70,8 +70,17 @@ app.put('/api/users/:id', (req, res) => {
             return res.status(404).json({ error: "Usuario no encontrado. No se puede realizar la actualización." });
         }
 
-        // Actualizamos la entidad con los nuevos datos recibidos
-        Object.assign(user, req.body);
+        // Solo extraemos los campos que el usuario tiene permitido modificar
+        const { nombre, direccion } = req.body;
+
+        // Validamos y asignamos individualmente
+        if (typeof nombre === 'string' && nombre.trim() !== '') {
+            user.nombre = nombre;
+        }
+        
+        if (typeof direccion === 'string' && direccion.trim() !== '') {
+            user.direccion = direccion;
+        }
 
         res.status(200).json({
             mensaje: "Perfil actualizado correctamente",
