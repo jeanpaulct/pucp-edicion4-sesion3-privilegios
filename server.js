@@ -5,6 +5,7 @@
  */
 
 const express = require('express');
+const { z } = require('zod');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -32,6 +33,11 @@ const users = [
 app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     next();
+});
+
+const updateProfileSchema = z.object({
+    nombre: z.string().min(2, "El nombre debe tener al menos 2 caracteres").optional(),
+    direccion: z.string().min(5, "La dirección debe tener al menos 5 caracteres").optional()
 });
 
 /**
@@ -70,23 +76,20 @@ app.put('/api/users/:id', (req, res) => {
             return res.status(404).json({ error: "Usuario no encontrado. No se puede realizar la actualización." });
         }
 
-        // Solo extraemos los campos que el usuario tiene permitido modificar
-        const { nombre, direccion } = req.body;
-
-        // Validamos y asignamos individualmente
-        if (typeof nombre === 'string' && nombre.trim() !== '') {
-            user.nombre = nombre;
-        }
-        
-        if (typeof direccion === 'string' && direccion.trim() !== '') {
-            user.direccion = direccion;
-        }
+        const safeData = updateProfileSchema.parse(req.body);
+        Object.assign(user, safeData);
 
         res.status(200).json({
             mensaje: "Perfil actualizado correctamente",
             data: user
         });
     } catch (error) {
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({ 
+                error: "Datos de entrada inválidos", 
+                detalles: error.errors 
+            });
+        }
         console.error("Error updating user:", error);
         res.status(500).json({ error: "Error interno del servidor al procesar la actualización." });
     }
